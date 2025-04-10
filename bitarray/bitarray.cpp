@@ -23,7 +23,7 @@ BitArray::BitArray(int num_bits, unsigned long value) : num_bits(num_bits), capa
 
 	for (int i = 0; i < num_bits && i < UL_BIT; ++i) {
 		if (value & (1UL << i)) {
-			set((num_bits - 1) - i);
+			set(i);
 		}
 	}
 }
