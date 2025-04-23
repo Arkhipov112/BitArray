@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "../googletest/googletest/include/gtest/gtest.h"
 
 #include "../bitarray/bitarray.hpp"
