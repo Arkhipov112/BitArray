@@ -41,11 +41,7 @@ void BitArray::swap(BitArray& bitarray) {
 }
 
 void BitArray::clear() {
-	delete[] bits;
-	bits = nullptr;
-
 	num_bits = 0;
-	capacity = 0;
 }
 
 void BitArray::resize(int num_bits, bool value) {
@@ -59,9 +55,9 @@ void BitArray::resize(int num_bits, bool value) {
 	int new_capacity = (num_bits + (CHAR_BIT - 1)) / CHAR_BIT;
 	char* new_bits = new char[new_capacity];
 
-	char bit;
-	value ? bit = 0xFF : bit = 0x00;
-	std::memset(new_bits, bit, new_capacity);
+	char bit_value;
+	value ? bit_value = 0xFF : bit_value = 0x00;
+	std::memset(new_bits, bit_value, (num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
 
 	int num_copy = std::min(num_bits, this->num_bits);
 
@@ -94,7 +90,7 @@ void BitArray::pushBack(bool value) {
 }
 
 BitArray& BitArray::set() {
-	std::memset(bits, 0xFF, capacity);
+	std::memset(bits, 0xFF, (num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
 	return *this;
 }
 
@@ -110,7 +106,7 @@ BitArray& BitArray::set(int n, bool value) {
 }
 
 BitArray& BitArray::reset() {
-	std::memset(bits, 0x00, capacity);
+	std::memset(bits, 0x00, (num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
 	return *this;
 }
 
