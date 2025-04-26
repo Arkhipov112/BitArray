@@ -5,7 +5,13 @@
 
 #include "bitarray.hpp"
 
-#define UL_BIT 32
+// Update: 					resize()
+// Code duplication in: 	set(), operator[]
+// Test: 					operator=
+
+namespace {
+	constexpr int UL_BIT = 32;
+}
 
 BitArray::BitArray() : bits(nullptr), num_bits(0), capacity(0) {}
 
@@ -47,46 +53,36 @@ void BitArray::clear() {
 void BitArray::resize(int num_bits, bool value) {
 	if (num_bits < 0) { throw "Out of range"; }
 
-	if (num_bits >= (capacity * CHAR_BIT) - (CHAR_BIT - 1) && num_bits <= capacity * CHAR_BIT) {
-		this->num_bits = num_bits;
-		return;
-	}
+	if (num_bits <= this->num_bits) { this->num_bits = num_bits; return; }
+
+	int old_num_bits = this->num_bits;
+	this->num_bits = num_bits;
 
 	int new_capacity = (num_bits + (CHAR_BIT - 1)) / CHAR_BIT;
-	char* new_bits = new char[new_capacity];
+	if (new_capacity > capacity) {
+		char* new_bits = new char[new_capacity * 2];
 
-	char bit_value;
-	value ? bit_value = 0xFF : bit_value = 0x00;
-	std::memset(new_bits, bit_value, (num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
+		int bit_value;
+		value ? bit_value = 0xFF : bit_value = 0x00;
+		std::memset(new_bits, bit_value, new_capacity);
 
-	int num_copy = std::min(num_bits, this->num_bits);
+		std::memcpy(new_bits, bits, (old_num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
 
-	std::memcpy(new_bits, bits, num_copy / CHAR_BIT);
+		delete[] bits;
+		bits = new_bits;
 
-	num_copy %= CHAR_BIT;
-	for (int i = 0; i < num_copy; ++i) {
-		int n = (CHAR_BIT - 1) - i;
-		bool bit = (operator[]((new_capacity - 1)* CHAR_BIT + i)) << n;
-
-		bit ? (new_bits[new_capacity - 1] |= (1 << n)) : (new_bits[new_capacity - 1] &= ~(1 << n));
+		capacity = new_capacity;
 	}
 
-	delete[] bits;
-	bits = new_bits;
-	this->num_bits = num_bits;
-	this->capacity = new_capacity;
+	else {
+		for (int i = 0; i < num_bits - old_num_bits; ++i) {
+			set((num_bits - 1) + i, value);
+		}
+	}
 }
 
 void BitArray::pushBack(bool value) {
-	if (!(num_bits % CHAR_BIT)) {
-		int old_num_bits = num_bits;
-		resize(2 * num_bits);
-		num_bits = old_num_bits;
-	}
-
-	++num_bits;
-
-	set(num_bits - 1, value);
+	resize(num_bits + 1, value);
 }
 
 BitArray& BitArray::set() {
