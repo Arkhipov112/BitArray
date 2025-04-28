@@ -5,10 +5,6 @@
 
 #include "bitarray.hpp"
 
-// Update: 					resize()
-// Code duplication in: 	set(), operator[]
-// Test: 					operator=
-
 namespace {
 	constexpr int UL_BIT = 32;
 }
@@ -36,8 +32,8 @@ BitArray::BitArray(int num_bits, unsigned long value) : num_bits(num_bits), capa
 	}
 }
 
-BitArray::BitArray(const BitArray& bitarray) : bits(new char[bitarray.capacity]), num_bits(bitarray.num_bits), capacity(bitarray.capacity) {
-	std::memcpy(bits, bitarray.bits, bitarray.capacity);
+BitArray::BitArray(const BitArray& bitarray) : bits(new char[(bitarray.num_bits + (CHAR_BIT - 1)) / CHAR_BIT]), num_bits(bitarray.num_bits), capacity((bitarray.num_bits + (CHAR_BIT - 1)) / CHAR_BIT) {
+	std::memcpy(bits, bitarray.bits, capacity);
 }
 
 void BitArray::swap(BitArray& bitarray) {
