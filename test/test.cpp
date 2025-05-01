@@ -28,8 +28,8 @@ TEST(BitArrayTest, OverloadedConstructor) {
         BitArray tbitarray(-1,  -1);
     }
 
-    catch (const char* string) {
-        EXPECT_STREQ(string, "Out of range");
+    catch (const std::exception& ex) {
+        EXPECT_STREQ(ex.what(), "The number of bits cannot be negative");
     }
 }
 
@@ -83,8 +83,8 @@ TEST(BitArrayTest, Resize) {
         tbitarray.resize(-1);
     }
 
-    catch (const char* string) {
-        EXPECT_STREQ(string, "Out of range");
+    catch (const std::exception& ex) {
+        EXPECT_STREQ(ex.what(), "The number of bits cannot be negative");
     }
 }
 
@@ -121,8 +121,8 @@ TEST(BitArrayTest, OverloadedSet) {
         tbitarray.set(-1);
     }
 
-    catch (const char* string) {
-        EXPECT_STREQ(string, "Out of range");
+    catch (const std::exception& ex) {
+        EXPECT_STREQ(ex.what(), "Out of range");
     }
 }
 
@@ -227,8 +227,8 @@ TEST(BitArrayTest, OperatorGet) {
         tbitarray[-1];
     }
 
-    catch (const char* string) {
-        EXPECT_STREQ(string, "Out of range");
+    catch (const std::exception& ex) {
+        EXPECT_STREQ(ex.what(), "Out of range");
     }
 }
 
@@ -245,6 +245,12 @@ TEST(BitArrayTest, OperatorAssign) {
 
     EXPECT_EQ(bitarray2.size(), 16);
     EXPECT_EQ(bitarray2.toString(), "0000010000000000");
+
+    BitArray bitarray3(4, 1);
+    bitarray2 = bitarray3;
+
+    EXPECT_EQ(bitarray2.size(), 4);
+    EXPECT_EQ(bitarray2.toString(), "1000");
 }
 
 TEST(BitArrayTest, OperatorAndAssign) {
@@ -286,8 +292,8 @@ TEST(BitArrayTest, OperatorRightShiftAssign) {
         tbitarray >> -1;
     }
 
-    catch (const char* string) {
-        EXPECT_STREQ(string, "Out of range");
+    catch (const std::exception& ex) {
+        EXPECT_STREQ(ex.what(), "Out of range");
     }
 }
 
@@ -303,8 +309,8 @@ TEST(BitArrayTest, OperatorLeftShiftAssign) {
         tbitarray << -1;
     }
 
-    catch (const char* string) {
-        EXPECT_STREQ(string, "Out of range");
+    catch (const std::exception& ex) {
+        EXPECT_STREQ(ex.what(), "Out of range");
     }
 }
 

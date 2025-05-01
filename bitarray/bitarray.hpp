@@ -45,9 +45,9 @@ public:
 	std::string toString() const;
 
 private:
-	char* bits;
 	int num_bits;
 	int capacity;
+	char* bits;
 };
 
 bool operator==(const BitArray& a, const BitArray& b);

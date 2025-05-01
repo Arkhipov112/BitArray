@@ -1,24 +1,38 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <stdexcept>
 #include <cstring>
 
 #include "bitarray.hpp"
 
 namespace {
-	constexpr int UL_BIT = 32;
+	const int UL_BIT = 32;
 }
 
-BitArray::BitArray() : bits(nullptr), num_bits(0), capacity(0) {}
+namespace {
+	inline int getCapacityByNumBits(int num_bits) {
+		return (num_bits + (CHAR_BIT - 1)) / CHAR_BIT;
+	}
+
+	inline int getByteInCapacity(int n) {
+		return n / CHAR_BIT;
+	}
+
+	inline int getBitInByte(int n) {
+		return (CHAR_BIT - 1) - (n % CHAR_BIT);
+	}
+}
+
+BitArray::BitArray() : num_bits(0), capacity(0), bits(nullptr) {}
 
 BitArray::~BitArray() {
 	delete[] bits;
 }
 
-BitArray::BitArray(int num_bits, unsigned long value) : num_bits(num_bits), capacity((num_bits + (CHAR_BIT - 1)) / CHAR_BIT) {
-	if (num_bits < 0) { throw "Out of range"; }
+BitArray::BitArray(int num_bits, unsigned long value) : num_bits(num_bits), capacity(getCapacityByNumBits(num_bits)), bits(new char[capacity]) {
+	if (num_bits < 0) { throw std::out_of_range("The number of bits cannot be negative"); }
 
-	bits = new char[capacity];
 	std::memset(bits, false, capacity);
 
 	if (num_bits < UL_BIT) {
@@ -32,7 +46,7 @@ BitArray::BitArray(int num_bits, unsigned long value) : num_bits(num_bits), capa
 	}
 }
 
-BitArray::BitArray(const BitArray& bitarray) : bits(new char[(bitarray.num_bits + (CHAR_BIT - 1)) / CHAR_BIT]), num_bits(bitarray.num_bits), capacity((bitarray.num_bits + (CHAR_BIT - 1)) / CHAR_BIT) {
+BitArray::BitArray(const BitArray& bitarray) : num_bits(bitarray.num_bits), capacity(getCapacityByNumBits(bitarray.num_bits)), bits(new char[capacity]) {
 	std::memcpy(bits, bitarray.bits, capacity);
 }
 
@@ -47,22 +61,21 @@ void BitArray::clear() {
 }
 
 void BitArray::resize(int num_bits, bool value) {
-	if (num_bits < 0) { throw "Out of range"; }
+	if (num_bits < 0) { throw std::out_of_range("The number of bits cannot be negative"); }
 
 	if (num_bits <= this->num_bits) { this->num_bits = num_bits; return; }
 
 	int old_num_bits = this->num_bits;
 	this->num_bits = num_bits;
 
-	int new_capacity = (num_bits + (CHAR_BIT - 1)) / CHAR_BIT;
+	int new_capacity = getCapacityByNumBits(num_bits);
 	if (new_capacity > capacity) {
-		char* new_bits = new char[new_capacity * 2];
+		char* new_bits = new char[new_capacity];
 
-		int bit_value;
-		value ? bit_value = 0xFF : bit_value = 0x00;
+		int bit_value = value ? 0xFF : 0x00;
 		std::memset(new_bits, bit_value, new_capacity);
 
-		std::memcpy(new_bits, bits, (old_num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
+		std::memcpy(new_bits, bits, getCapacityByNumBits(old_num_bits));
 
 		delete[] bits;
 		bits = new_bits;
@@ -82,23 +95,20 @@ void BitArray::pushBack(bool value) {
 }
 
 BitArray& BitArray::set() {
-	std::memset(bits, 0xFF, (num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
+	std::memset(bits, 0xFF, getCapacityByNumBits(num_bits));
 	return *this;
 }
 
 BitArray& BitArray::set(int n, bool value) {
-	if (n < 0 || n >= num_bits) { throw "Out of range"; }
+	if (n < 0 || n >= num_bits) { throw std::out_of_range("Out of range"); }
 
-	int byte = n / CHAR_BIT;
-	int bit = (CHAR_BIT - 1) - (n % CHAR_BIT);
-
-	value ? bits[byte] |= (1 << bit) : bits[byte] &= ~(1 << bit);
+	value ? bits[getByteInCapacity(n)] |= (1 << getBitInByte(n)) : bits[getByteInCapacity(n)] &= ~(1 << getBitInByte(n));
 
 	return *this;
 }
 
 BitArray& BitArray::reset() {
-	std::memset(bits, 0x00, (num_bits + (CHAR_BIT - 1)) / CHAR_BIT);
+	std::memset(bits, 0x00, getCapacityByNumBits(num_bits));
 	return *this;
 }
 
@@ -138,12 +148,9 @@ bool BitArray::empty() const {
 }
 
 bool BitArray::operator[](int n) const {
-	if (n < 0 || n >= num_bits) { throw "Out of range"; }
+	if (n < 0 || n >= num_bits) { throw std::out_of_range("Out of range"); }
 
-	int byte = n / CHAR_BIT;
-	int bit = (CHAR_BIT - 1) - (n % CHAR_BIT);
-
-	return bits[byte] & (1 << bit);
+	return bits[getByteInCapacity(n)] & (1 << getBitInByte(n));
 }
 
 BitArray& BitArray::operator~() {
@@ -159,56 +166,44 @@ BitArray& BitArray::operator=(const BitArray& bitarray) {
 		return *this;
 	}
 
-	bits = new char[bitarray.capacity];
-	std::memcpy(bits, bitarray.bits, bitarray.capacity);
-
-	num_bits = bitarray.num_bits;
-	capacity = bitarray.capacity;
-
+	resize(bitarray.num_bits);
+	memcpy(bits, bitarray.bits, num_bits);
+  
 	return *this;
 }
 
 BitArray& BitArray::operator&=(const BitArray& bitarray) {
-	int num_min = std::min(bitarray.num_bits, num_bits);
+	int capacity_min = std::min(getCapacityByNumBits(bitarray.num_bits), getCapacityByNumBits(num_bits));
 
-	int last_this = (capacity - 1) * CHAR_BIT + (CHAR_BIT - 1) - (num_bits % CHAR_BIT);
-	int last_bitarray = (bitarray.capacity - 1) * CHAR_BIT + (CHAR_BIT - 1) - (bitarray.num_bits % CHAR_BIT);
-
-	for (int i = 0; i < num_min; ++i) {
-		set(last_this - i, bitarray[last_bitarray - i] && operator[](last_this - i));
+	for (int i = 0; i < capacity_min; ++i) {
+		bits[(getCapacityByNumBits(num_bits) - 1) - i] &= bitarray.bits[(getCapacityByNumBits(bitarray.num_bits) - 1) - i];
 	}
 
 	return *this;
 }
 
 BitArray& BitArray::operator|=(const BitArray& bitarray) {
-	int num_min = std::min(bitarray.num_bits, num_bits);
+	int capacity_min = std::min(getCapacityByNumBits(bitarray.num_bits), getCapacityByNumBits(num_bits));
 
-	int last_this = (capacity - 1) * CHAR_BIT + (CHAR_BIT - 1) - (num_bits % CHAR_BIT);
-	int last_bitarray = (bitarray.capacity - 1) * CHAR_BIT + (CHAR_BIT - 1) - (bitarray.num_bits % CHAR_BIT);
-
-	for (int i = 0; i < num_min; ++i) {
-		set(last_this - i, bitarray[last_bitarray - i] || operator[](last_this - i));
+	for (int i = 0; i < capacity_min; ++i) {
+		bits[(getCapacityByNumBits(num_bits) - 1) - i] |= bitarray.bits[(getCapacityByNumBits(bitarray.num_bits) - 1) - i];
 	}
 
 	return *this;
 }
 
 BitArray& BitArray::operator^=(const BitArray& bitarray) {
-	int num_min = std::min(bitarray.num_bits, num_bits);
+	int capacity_min = std::min(getCapacityByNumBits(bitarray.num_bits), getCapacityByNumBits(num_bits));
 
-	int last_this = (capacity - 1) * CHAR_BIT + (CHAR_BIT - 1) - (num_bits % CHAR_BIT);
-	int last_bitarray = (bitarray.capacity - 1) * CHAR_BIT + (CHAR_BIT - 1) - (bitarray.num_bits % CHAR_BIT);
-
-	for (int i = 0; i < num_min; ++i) {
-		set(last_this - i, bitarray[last_bitarray - i] ^ operator[](last_this - i));
+	for (int i = 0; i < capacity_min; ++i) {
+		bits[(getCapacityByNumBits(num_bits) - 1) - i] ^= bitarray.bits[(getCapacityByNumBits(bitarray.num_bits) - 1) - i];
 	}
 
 	return *this;
 }
 
 BitArray& BitArray::operator>>=(int n) {
-	if (n < 0) { throw "Out of range"; }
+	if (n < 0) { throw std::out_of_range("Out of range"); }
 
 	if (n >= num_bits) {
 		reset();
@@ -227,7 +222,7 @@ BitArray& BitArray::operator>>=(int n) {
 }
 
 BitArray& BitArray::operator<<=(int n) {
-	if (n < 0) { throw "Out of range"; }
+	if (n < 0) { throw std::out_of_range("Out of range"); }
 
 	if (n >= num_bits) {
 		reset();
